@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Trading Desk PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#05070f;
+  color:#e5e7eb;
+  display:flex;
+  justify-content:center;
+}
+.app{width:100%;max-width:420px}
+
+/* HEADER */
+header{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;
+  background:linear-gradient(90deg,#0f172a,#111827,#0f172a);
+}
+.online{color:#22c55e;font-size:12px}
+
+/* BOX */
+.container{padding:12px}
+.box{
+  background:#0b1220;
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+}
+
+/* SIGNAL */
+#signal{position:sticky;top:75px;z-index:999}
+.signal-box{
+  padding:12px;
+  background:#0f172a;
+  border-radius:12px;
+  animation:glow 1s infinite alternate;
+}
+@keyframes glow{
+  from{box-shadow:0 0 5px #22c55e;}
+  to{box-shadow:0 0 18px #22c55e;}
+}
+
+/* HISTORY */
+#history{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  height:170px;
+}
+.history-item{
+  background:#0f172a;
+  padding:10px;
+  border-radius:10px;
+  animation:historyGlow 1.5s infinite alternate;
+}
+@keyframes historyGlow{
+  from{box-shadow:0 0 4px rgba(34,197,94,0.3);}
+  to{box-shadow:0 0 12px rgba(34,197,94,0.9);}
+}
+
+/* CHAT */
+.chat-box{max-height:140px;overflow:hidden}
+.chat{
+  font-size:12px;
+  padding:6px;
+  margin:4px 0;
+  background:#0f172a;
+  border-radius:8px;
+}
+
+/* PROFIT */
+.win{color:#facc15;font-weight:bold}
+
+/* FLOAT PROFIT */
+#profitPopup{
+  position:fixed;
+  bottom:60px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#0f172a;
+  border:1px solid #22c55e;
+  padding:6px 14px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:bold;
+  opacity:0;
+  z-index:9999;
+  box-shadow:0 0 12px rgba(34,197,94,0.9);
+}
+@keyframes floatUp{
+  0%{transform:translate(-50%, 40px);opacity:0;}
+  30%{opacity:1;}
+  100%{transform:translate(-50%, -40px);opacity:0;}
+}
+
+/* NOTIF */
+#signalNotif{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#0f172a;
+  padding:14px 20px;
+  border-radius:12px;
+  font-weight:bold;
+  font-size:16px;
+  opacity:0;
+  z-index:9999;
+  box-shadow:0 0 15px rgba(34,197,94,0.8);
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+🌍 GLOBAL TRADING DESK<br>
+<span id="online" class="online"></span>
+</header>
+
+<div class="container">
+
+<!-- CHART -->
+<div class="box">
+<h3>📈 Live Chart</h3>
+<div id="tv_chart"></div>
+
+<!-- WIN RATE (PINDAH KE SINI) -->
+<div style="
+margin-top:10px;
+padding:10px;
+background:#0f172a;
+border-radius:10px;
+text-align:center;
+border:1px solid rgba(34,197,94,0.4);
+">
+🔥 WIN RATE <span style="color:#22c55e;font-size:20px;font-weight:bold">
+97%
+</span>
+</div>
+
+</div>
+
+<!-- SIGNAL (DIBUAT LEBIH TURUN SEDIKIT) -->
+<div class="box" style="margin-top:18px;">
+<h3>📡 SIGNAL</h3>
+<div id="signal">Loading...</div>
+</div>
+
+<!-- HISTORY -->
+<div class="box">
+<h3>📜 WIN HISTORY</h3>
+<div id="history"></div>
+</div>
+
+<!-- CHAT -->
+<div class="box">
+<h3>💬 LIVE CHAT</h3>
+<div id="chat" class="chat-box"></div>
+</div>
+
+</div>
+</div>
+
+<div id="profitPopup"></div>
+<div id="signalNotif"></div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+
+/* 🌍 ONLINE USERS (6M–10M+ HAMBUR) */
+setInterval(()=>{
+  let base = 6000000 + Math.floor(Math.random()*4000000);
+
+  let r = Math.random();
+
+  if(r > 0.7) base += Math.floor(Math.random()*900000);
+  if(r < 0.3) base -= Math.floor(Math.random()*600000);
+
+  if(Math.random() > 0.95){
+    base += Math.floor(Math.random()*3000000);
+  }
+
+  document.getElementById("online").innerText =
+    base.toLocaleString()+"+ global users online 🌍";
+
+},2000);
+
+/* 📈 CHART */
+new TradingView.widget({
+  width:"100%",
+  height:260,
+  symbol:"OANDA:XAUUSD",
+  interval:"5",
+  theme:"dark",
+  container_id:"tv_chart"
+});
+
+/* 📡 SIGNAL */
+async function getSignal(){
+  try{
+    let res = await fetch("https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=5min&outputsize=50&apikey=f6c0ed8c2d3641bcb6f00879919d479f");
+    let data = await res.json();
+
+    if(!data.values) throw "error";
+
+    let closes = data.values.map(v=>parseFloat(v.close)).reverse();
+
+    let price = closes.at(-1);
+    let type = Math.random()>0.5 ? "BUY" : "SELL";
+
+    renderSignal(type,price);
+
+  }catch{
+    renderSignal("BUY",4700);
+  }
+}
+
+function renderSignal(type,price){
+
+  let entryLow=(price-1.5).toFixed(2);
+  let entryHigh=(price+1.5).toFixed(2);
+  let tp=(type==="BUY"?price+35:price-35).toFixed(2);
+  let sl=(type==="BUY"?price-20:price+20).toFixed(2);
+  let profit=3000+Math.floor(Math.random()*50000);
+
+  document.getElementById("signal").innerHTML=`
+    <div class="signal-box">
+    ${type==="BUY"?"🟢 BUY 🚀":"🔴 SELL ⚡"}<br><br>
+
+    ENTRY: <span class="win">${entryLow} - ${entryHigh}</span><br>
+    TP: <span class="win">${tp}</span><br>
+    SL: <span style="color:#ef4444">${sl}</span><br><br>
+
+    PROFIT: <span class="win">$${profit.toLocaleString()}</span>
+    </div>
+  `;
+
+  updateHistory();
+  showSignalNotif(type);
+}
+
+/* NOTIF */
+function showSignalNotif(type){
+  let el=document.getElementById("signalNotif");
+
+  el.innerHTML = type==="BUY"
+  ? "🟢 BUY SIGNAL 🚀"
+  : "🔴 SELL SIGNAL ⚡";
+
+  el.style.opacity="1";
+  setTimeout(()=>el.style.opacity="0",2000);
+}
+
+/* HISTORY */
+function updateHistory(){
+  let html="";
+  for(let i=0;i<3;i++){
+    let type=Math.random()>0.5?"BUY":"SELL";
+    let profit=3000+Math.floor(Math.random()*50000);
+
+    html+=`
+    <div class="history-item">
+    ${type==="BUY"?"🟢 BUY 🚀":"🔴 SELL ⚡"} ✔<br>
+    💰 PROFIT <span class="win">$${profit.toLocaleString()}</span>
+    </div>`;
+  }
+  document.getElementById("history").innerHTML=html;
+}
+
+/* CHAT */
+function liveChat(){
+  const data=[
+    {c:"US",msg:["Nice profit 🔥","Strong buy 🚀"]},
+    {c:"ID",msg:["mantap profit 🔥","gas buy 🚀"]},
+    {c:"JP",msg:["いいね 📈"]},
+    {c:"FR",msg:["bon profit 🔥"]},
+    {c:"DE",msg:["guter Gewinn 🔥"]}
+  ];
+
+  let d=data[Math.floor(Math.random()*data.length)];
+  let m=d.msg[Math.floor(Math.random()*d.msg.length)];
+  let u="user"+Math.floor(Math.random()*9999);
+
+  let el=document.createElement("div");
+  el.className="chat";
+  el.innerText=`${u} (${d.c}): ${m}`;
+
+  let box=document.getElementById("chat");
+  box.prepend(el);
+
+  if(box.children.length>6){
+    box.removeChild(box.lastChild);
+  }
+}
+
+/* FLOAT PROFIT */
+function showProfit(){
+  let u="user"+Math.floor(Math.random()*999);
+  let p=3000+Math.floor(Math.random()*50000);
+
+  let el=document.getElementById("profitPopup");
+  el.innerHTML=`🔥 ${u} profit <span class="win">$${p.toLocaleString()}</span>`;
+
+  el.style.animation="none";
+  void el.offsetWidth;
+  el.style.animation="floatUp 2s ease forwards";
+}
+
+/* LOOP */
+getSignal();
+setInterval(getSignal,300000);
+setInterval(liveChat,1500);
+setInterval(showProfit,2500);
+
+</script>
+
+</body>
+  </html>
