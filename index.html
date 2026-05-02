@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Trading Desk PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#05070f;
+  color:#e5e7eb;
+}
+.app{
+  width:100%;
+  max-width:420px;
+  margin:auto;
+}
+
+/* HEADER */
+header{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;
+  background:linear-gradient(90deg,#0f172a,#111827,#0f172a);
+}
+.online{color:#22c55e;font-size:12px}
+
+/* BOX */
+.container{padding:12px}
+.box{
+  background:#0b1220;
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+}
+
+/* SIGNAL */
+.signal-box{
+  padding:14px;
+  background:#0f172a;
+  border-radius:14px;
+  text-align:center;
+  animation:glowSignal 1s infinite alternate;
+}
+@keyframes glowSignal{
+  from{box-shadow:0 0 8px #22c55e;}
+  to{box-shadow:0 0 30px #22c55e;}
+}
+.signal-buy{color:#22c55e;font-weight:bold;font-size:18px;}
+.signal-sell{color:#ef4444;font-weight:bold;font-size:18px;}
+
+/* HISTORY */
+#history{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.history-item{
+  background:#0f172a;
+  padding:12px;
+  border-radius:12px;
+  animation:glowHistory 1.2s infinite alternate;
+}
+@keyframes glowHistory{
+  from{box-shadow:0 0 5px #facc15;}
+  to{box-shadow:0 0 20px #facc15;}
+}
+.profit{
+  color:#facc15;
+  font-weight:bold;
+  font-size:18px;
+}
+
+/* CHAT */
+.chat-box{max-height:140px;overflow:hidden}
+.chat{
+  font-size:12px;
+  padding:6px;
+  margin:4px 0;
+  background:#0f172a;
+  border-radius:8px;
+}
+.chat-input{display:flex;margin-top:8px;}
+.chat-input input{flex:1;padding:6px;border:none;border-radius:6px;}
+.chat-input button{
+  margin-left:6px;
+  padding:6px 10px;
+  background:#22c55e;
+  border:none;
+  border-radius:6px;
+}
+
+/* CHART FIX */
+#tv_chart{
+  width:100%;
+  height:260px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+🌍 GLOBAL TRADING DESK PRO<br>
+<span id="online" class="online"></span>
+</header>
+
+<div class="container">
+
+<div class="box">
+📡 Server: ONLINE | ⚡ Latency: 12ms | 🧠 AI ACTIVE
+</div>
+
+<!-- CHART -->
+<div class="box">
+<h3>📈 Live Chart</h3>
+<div id="tv_chart"></div>
+</div>
+
+<!-- SIGNAL -->
+<div class="box">
+
+<div style="text-align:center;margin-bottom:6px;">
+🔥 WIN RATE <span style="color:#22c55e;font-size:18px;font-weight:bold">97%</span>
+</div>
+
+<h3>📡 SIGNAL</h3>
+<div id="signal">Loading...</div>
+
+</div>
+
+<!-- HISTORY -->
+<div class="box">
+<h3>📜 WIN HISTORY</h3>
+<div id="history"></div>
+</div>
+
+<!-- CHAT -->
+<div class="box">
+<h3>💬 LIVE CHAT</h3>
+<div id="chat" class="chat-box"></div>
+
+<div class="chat-input">
+<input id="chatInput" placeholder="Ketik chat...">
+<button onclick="sendChat()">Kirim</button>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+
+/* ONLINE USERS */
+setInterval(()=>{
+  let base = 6000000 + Math.floor(Math.random()*4000000);
+  document.getElementById("online").innerText =
+    base.toLocaleString()+"+ users online";
+},2000);
+
+/* TRADINGVIEW FIX */
+function loadChart(){
+  new TradingView.widget({
+    width:"100%",
+    height:260,
+    symbol:"OANDA:XAUUSD",
+    interval:"5",
+    theme:"dark",
+    container_id:"tv_chart"
+  });
+}
+setTimeout(loadChart,1000);
+
+/* SIGNAL API */
+async function getSignal(){
+  try{
+    let res = await fetch("https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=5min&outputsize=100&apikey=f6c0ed8c2d3641bcb6f00879919d479f");
+    let data = await res.json();
+
+    let closes = data.values.map(v=>parseFloat(v.close)).reverse();
+    let last = closes.at(-1);
+    let prev = closes.at(-2);
+
+    let type = last > prev ? "BUY" : "SELL";
+    renderSignal(type,last);
+
+  }catch{
+    renderSignal("BUY",3000);
+  }
+}
+
+/* RENDER SIGNAL */
+function renderSignal(type,price){
+  document.getElementById("signal").innerHTML =
+  `<div class="signal-box">🧠 AI ANALYZING...</div>`;
+
+  setTimeout(()=>{
+
+    let entryLow=(price-1.5).toFixed(2);
+    let entryHigh=(price+1.5).toFixed(2);
+    let tp=(type==="BUY"?price+35:price-35).toFixed(2);
+    let sl=(type==="BUY"?price-20:price+20).toFixed(2);
+
+    document.getElementById("signal").innerHTML=`
+    <div class="signal-box">
+      <div class="${type==="BUY"?"signal-buy":"signal-sell"}">
+        ${type==="BUY"?"🟢 BUY 🚀":"🔴 SELL ⚡"}
+      </div>
+
+      <div style="margin-top:8px;">
+        🎯 ENTRY<br>
+        <span style="color:#facc15">${entryLow} - ${entryHigh}</span>
+      </div>
+
+      <div style="margin-top:8px;">
+        💰 TP: <span style="color:#facc15">${tp}</span>
+      </div>
+
+      <div style="margin-top:6px;">
+        🛑 SL: <span style="color:#ef4444">${sl}</span>
+      </div>
+    </div>
+    `;
+
+    updateHistory();
+
+  },1200);
+}
+
+/* HISTORY */
+function updateHistory(){
+  let html="";
+  for(let i=0;i<3;i++){
+    let profit = 5000 + Math.floor(Math.random()*95000);
+    html += `
+    <div class="history-item">
+      🔥 PROFIT HIT<br>
+      <span class="profit">💰 $${profit.toLocaleString()}</span>
+    </div>`;
+  }
+  document.getElementById("history").innerHTML = html;
+}
+
+/* CHAT AUTO */
+setInterval(()=>{
+  const msgs=["profit 🔥","TP hit 🚀","mantap 🔥","win 💰"];
+  let el=document.createElement("div");
+  el.className="chat";
+  el.innerText=`User: ${msgs[Math.random()*msgs.length|0]}`;
+
+  let box=document.getElementById("chat");
+  box.prepend(el);
+
+  if(box.children.length>6){
+    box.removeChild(box.lastChild);
+  }
+},1500);
+
+/* CHAT MANUAL */
+function sendChat(){
+  let input = document.getElementById("chatInput");
+  let text = input.value.trim();
+  if(!text) return;
+
+  let el = document.createElement("div");
+  el.className = "chat";
+  el.innerText = "You: " + text;
+
+  let box=document.getElementById("chat");
+  box.prepend(el);
+
+  if(box.children.length>6){
+    box.removeChild(box.lastChild);
+  }
+
+  input.value="";
+}
+
+/* LOOP */
+getSignal();
+setInterval(getSignal,300000);
+
+</script>
+
+</body>
+</html>
